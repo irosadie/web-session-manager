@@ -408,22 +408,52 @@ async function createWindow() {
 	win = new BrowserWindow({
         width: 1200,
         height: 800,
+        icon: path.join(__dirname, '../public/img/icon.png'), // Icon path sudah benar
+        title: 'Facebook Session Manager',
+        show: false, // Don't show until ready to load
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: false,
             nodeIntegration: false,
+            webSecurity: true
         },
 	})
 	
-	win.setTitle('Facebook - Chrome')
+	win.setTitle('Facebook Session Manager - Chrome')
 
-    await win.loadURL('https://www.facebook.com', {
-        userAgent,
+    // Show window when ready to prevent premature closing
+    win.once('ready-to-show', () => {
+        win?.show()
+        console.log('✅ Window ready and shown')
+    })
+
+    // Add error handling for failed loads
+    win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+        console.error('❌ Failed to load:', errorCode, errorDescription)
+    })
+
+    // Add console logging for debugging
+    win.webContents.on('did-start-loading', () => {
+        console.log('🔄 Started loading Facebook...')
     })
 
     win.webContents.on('did-finish-load', () => {
         console.log('✅ Page loaded. Login Facebook ya!')
     })
+
+    // Load Facebook with error handling
+    try {
+        await win.loadURL('https://www.facebook.com', {
+            userAgent,
+        })
+        console.log('✅ Facebook URL loaded successfully')
+    } catch (error) {
+        console.error('❌ Error loading Facebook:', error)
+        // Show a local error page or retry
+        win?.loadFile(path.join(__dirname, '../public/error.html')).catch(() => {
+            console.error('❌ Could not load error page')
+        })
+    }
 
     win.webContents.on('devtools-opened', () => {
         win?.webContents.closeDevTools()

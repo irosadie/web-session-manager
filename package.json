@@ -2,24 +2,38 @@
   "name": "facebook-session-manager",
   "productName": "facebook-session-manager",
   "version": "1.0.0",
-  "description": "Facebook Session Manager",
+  "description": "Facebook Session Manager - Manage Facebook sessions with export/import capabilities",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
+    "make:win": "electron-forge make --platform=win32",
+	"make:mac": "electron-forge make --platform=darwin",
+    "make:linux": "electron-forge make --platform=linux",
+    "package:win": "electron-forge package --platform=win32",
+    "package:mac": "electron-forge package --platform=darwin",
+    "package:linux": "electron-forge package --platform=linux",
+    "build:all": "electron-forge make --platform=win32,darwin,linux",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx ."
   },
-  "keywords": [],
+  "keywords": ["electron", "facebook", "session", "manager", "automation", "testing"],
   "author": {
-    "name": "bangimron",
-    "email": "imronrosadiee@gmail.com"
+    "name": "BinaryDev",
+    "email": "hi@binarydev.co.id",
+    "url": "https://binarydev.co.id"
   },
   "license": "MIT",
+  "homepage": "https://github.com/irosadie/facebook-session-manager",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/irosadie/facebook-session-manager.git"
+  },
   "devDependencies": {
     "@electron-forge/cli": "^7.8.1",
     "@electron-forge/maker-deb": "^7.8.1",
+    "@electron-forge/maker-dmg": "^7.8.1",
     "@electron-forge/maker-rpm": "^7.8.1",
     "@electron-forge/maker-squirrel": "^7.8.1",
     "@electron-forge/maker-zip": "^7.8.1",

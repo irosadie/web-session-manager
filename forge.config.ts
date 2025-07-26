@@ -3,6 +3,7 @@ import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
+import { MakerDMG } from '@electron-forge/maker-dmg';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
@@ -10,9 +11,55 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    name: 'Facebook Session Manager',
+    executableName: 'facebook-session-manager',
+    appBundleId: 'com.binarydev.facebook-session-manager',
+    appCategoryType: 'public.app-category.developer-tools',
+    icon: './public/img/icon', // Fixed icon path
+    // osxSign disabled for development - no code signing required
+    win32metadata: {
+      CompanyName: 'BinaryDev',
+      FileDescription: 'Facebook Session Manager',
+      OriginalFilename: 'facebook-session-manager.exe',
+      ProductName: 'Facebook Session Manager',
+      InternalName: 'facebook-session-manager'
+    }
   },
   rebuildConfig: {},
-  makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],
+  makers: [
+    // Windows - Squirrel installer (.exe)
+    new MakerSquirrel({
+      name: 'facebook-session-manager',
+      setupIcon: './public/img/icon.ico',
+	  //   loadingGif: './public/img/loading.gif', // Optional
+      loadingGif: './public/img/icon.ico', // Optional
+	  
+    }),
+    // macOS - DMG installer
+    new MakerDMG({
+      name: 'Facebook Session Manager',
+      icon: './public/img/icon.icns',
+      // background: './public/img/icon.png', // Optional - disabled for now
+      format: 'ULFO'
+    }),
+    // macOS - ZIP file (backup)
+    new MakerZIP({}, ['darwin']),
+    // Linux
+    new MakerRpm({
+      options: {
+        name: 'facebook-session-manager',
+        productName: 'Facebook Session Manager',
+        icon: './public/img/icon.png'
+      }
+    }), 
+    new MakerDeb({
+      options: {
+        name: 'facebook-session-manager',
+        productName: 'Facebook Session Manager',
+        icon: './public/img/icon.png'
+      }
+    })
+  ],
   plugins: [
     new VitePlugin({
       // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.

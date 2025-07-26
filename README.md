@@ -92,11 +92,75 @@ bun run start
 # Build application for production
 bun run package
 
-# Create installer/distributable
+# Create installer/distributable for all platforms
 bun run make
+
+# Platform-specific builds
+bun run make:win       # Windows (.exe)
+bun run make:mac       # macOS (.dmg)
+bun run make:linux     # Linux (.deb, .rpm)
+
+# Package without installer
+bun run package:win    # Windows package
+bun run package:mac    # macOS package  
+bun run package:linux  # Linux package
+
+# Build for all platforms at once
+bun run build:all
 
 # Lint code
 bun run lint
+```
+
+## 📦 Build Outputs
+
+After building, you'll find the distributable files in:
+
+### macOS (.dmg)
+- **Location**: `out/make/Facebook Session Manager.dmg`
+- **Size**: ~105MB
+- **Architecture**: ARM64 (Apple Silicon)
+
+### macOS (.zip) 
+- **Location**: `out/make/zip/darwin/arm64/Facebook Session Manager-darwin-arm64-1.0.0.zip`
+- **Size**: ~105MB  
+- **Use case**: Alternative distribution format
+
+### Application Bundle
+- **Location**: `out/Facebook Session Manager-darwin-arm64/Facebook Session Manager.app`
+- **Use case**: Direct execution without installer
+
+## 🏗️ Building for Windows (.exe)
+
+To build Windows executables from macOS, you'll need:
+
+```bash
+# Install Wine (for cross-compilation)
+brew install --cask wine-stable
+
+# Build Windows version
+bun run make:win
+```
+
+**Note**: Cross-platform building may require additional setup. For best results, build Windows executables on a Windows machine.
+
+## 🚀 Running the Application
+
+### From DMG (Recommended)
+1. Download `Facebook Session Manager.dmg`
+2. Open the DMG file
+3. Drag the app to Applications folder
+4. Launch from Applications
+
+### From ZIP
+1. Download and extract the ZIP file  
+2. Right-click the app → Open
+3. Confirm security dialog if needed
+
+### Direct Execution
+```bash
+cd out/Facebook\ Session\ Manager-darwin-arm64/
+open Facebook\ Session\ Manager.app
 ```
 
 ## 📄 Session File Format
