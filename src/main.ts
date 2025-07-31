@@ -48,6 +48,48 @@ interface LoadSessionData {
 const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 
+// Domain configuration
+interface DomainConfig {
+    domain: string
+    displayName: string
+    url: string
+    cookieIdentifiers: string[]
+}
+
+const domainConfigs: DomainConfig[] = [
+    {
+        domain: 'facebook.com',
+        displayName: 'Facebook',
+        url: 'https://www.facebook.com',
+        cookieIdentifiers: ['c_user', 'xs']
+    },
+    {
+        domain: 'instagram.com',
+        displayName: 'Instagram', 
+        url: 'https://www.instagram.com',
+        cookieIdentifiers: ['sessionid', 'csrftoken']
+    },
+    {
+        domain: 'twitter.com',
+        displayName: 'Twitter/X',
+        url: 'https://x.com',
+        cookieIdentifiers: ['auth_token', 'ct0']
+    },
+    {
+        domain: 'linkedin.com',
+        displayName: 'LinkedIn',
+        url: 'https://www.linkedin.com',
+        cookieIdentifiers: ['li_at', 'JSESSIONID']
+    },
+    {
+        domain: 'tiktok.com',
+        displayName: 'TikTok',
+        url: 'https://www.tiktok.com',
+        cookieIdentifiers: ['sessionid', 'sid_tt']
+    }
+]
+
+let currentDomainConfig = domainConfigs[0] // Default ke Facebook
 let win: BrowserWindow | null = null
 let sessionData: SessionData = {}
 function createAppMenu() {
@@ -110,6 +152,22 @@ function createAppMenu() {
                     role: 'close' as const
                 },
             ],
+        },
+        {
+            label: 'Config',
+            submenu: [
+                {
+                    label: 'Change Domain',
+                    submenu: domainConfigs.map(config => ({
+                        label: config.displayName,
+                        type: 'radio' as const,
+                        checked: config.domain === currentDomainConfig.domain,
+                        click: async () => {
+                            await changeDomain(config)
+                        }
+                    }))
+                }
+            ]
         },
         {
             label: 'Session',
@@ -191,6 +249,38 @@ function createAppMenu() {
 
     const menu = Menu.buildFromTemplate(template)
     Menu.setApplicationMenu(menu)
+}
+
+async function changeDomain(config: DomainConfig) {
+    try {
+        currentDomainConfig = config
+        console.log(`🔄 Changing domain to: ${config.displayName}`)
+        
+        if (!win) {
+            console.error('❌ Window not available')
+            return
+        }
+
+        // Update window title
+        win.setTitle(`${config.displayName} Session Manager - Chrome`)
+        
+        // Update app name in dock/taskbar
+        app.setName(`${config.displayName} - Chrome`)
+        
+        // Navigate to new domain
+        await win.loadURL(config.url, { userAgent })
+        
+        // Recreate menu with updated radio selection
+        createAppMenu()
+        
+        console.log(`✅ Switched to ${config.displayName}`)
+        win.webContents.executeJavaScript(`alert("✅ Switched to ${config.displayName}")`)
+        
+    } catch (error) {
+        console.error('❌ Error changing domain:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        win?.webContents.executeJavaScript(`alert("❌ Error changing domain: ${errorMessage}")`)
+    }
 }
 
 async function loadSession() {
@@ -290,9 +380,9 @@ async function loadSession() {
         // Wait a bit for all session data to be properly set
         await new Promise(resolve => setTimeout(resolve, 1000))
 
-        // Navigate to Facebook after loading session
-        console.log('🌐 Navigating to Facebook...')
-        await win?.loadURL('https://www.facebook.com', { userAgent })
+        // Navigate to current domain after loading session
+        console.log(`🌐 Navigating to ${currentDomainConfig.displayName}...`)
+        await win?.loadURL(currentDomainConfig.url, { userAgent })
         
         console.log('✅ Session loaded successfully')
         win?.webContents.executeJavaScript(`alert("✅ Session loaded successfully!")`)
@@ -333,8 +423,8 @@ async function clearSession() {
             storages: ['localstorage', 'cookies', 'filesystem', 'indexdb', 'websql', 'cachestorage', 'serviceworkers']
         })
 
-        // Navigate to Facebook to refresh the page
-        await win.loadURL('https://www.facebook.com', { userAgent })
+        // Navigate to current domain to refresh the page
+        await win.loadURL(currentDomainConfig.url, { userAgent })
         
         console.log('✅ All session data cleared')
         win.webContents.executeJavaScript(`alert("✅ Session cleared successfully!")`)
@@ -350,16 +440,31 @@ async function collectSessionData() {
     try {
         const currentURL = win?.webContents.getURL()
         const allCookies = await session.defaultSession.cookies.get({})
-        const fbCookies = allCookies.filter(c => ['facebook.com', '.facebook.com', 'fb.com', '.fb.com'].some(domain => c.domain.includes(domain)))
+        
+        // Filter cookies for current domain
+        const targetDomains = [
+            currentDomainConfig.domain,
+            `.${currentDomainConfig.domain}`,
+            currentDomainConfig.domain.replace('www.', ''),
+            `.${currentDomainConfig.domain.replace('www.', '')}`
+        ]
+        
+        const domainCookies = allCookies.filter(c => 
+            targetDomains.some(domain => c.domain.includes(domain))
+        )
 
-        const cUser = fbCookies.find(c => c.name === 'c_user')
-        if (!cUser) {
-            console.log('⚠️ Belum login (cookie "c_user" tidak ditemukan)')
-            win?.webContents.executeJavaScript(`alert("⚠️ Belum login ke Facebook")`)
+        // Check if user is logged in by looking for domain-specific cookies
+        const loginCookie = domainCookies.find(c => 
+            currentDomainConfig.cookieIdentifiers.some(identifier => c.name === identifier)
+        )
+        
+        if (!loginCookie) {
+            console.log(`⚠️ Belum login (cookies "${currentDomainConfig.cookieIdentifiers.join(', ')}" tidak ditemukan)`)
+            win?.webContents.executeJavaScript(`alert("⚠️ Belum login ke ${currentDomainConfig.displayName}")`)
             return
         }
 
-        const cookieString = fbCookies.map(c => `${c.name}=${c.value}`).join('; ')
+        const cookieString = domainCookies.map(c => `${c.name}=${c.value}`).join('; ')
 
         const storageData = await win?.webContents.executeJavaScript(`
       (() => {
@@ -391,13 +496,13 @@ async function collectSessionData() {
             url: currentURL,
             timestamp: new Date().toISOString(),
             userAgent: userAgent,
-            cookies: fbCookies,
+            cookies: domainCookies,
             cookieString,
-            domains: [...new Set(fbCookies.map(c => c.domain))],
+            domains: [...new Set(domainCookies.map(c => c.domain))],
             browserContext: storageData || {},
         }
 
-        console.log('✅ Session collected successfully')
+        console.log(`✅ ${currentDomainConfig.displayName} session collected successfully`)
     } catch (e) {
         console.error('❌ Failed to collect session data:', e)
         win?.webContents.executeJavaScript(`alert("❌ Gagal collect session data")`)
@@ -409,7 +514,7 @@ async function createWindow() {
         width: 1200,
         height: 800,
         icon: path.join(__dirname, '../public/img/icon.png'), // Icon path sudah benar
-        title: 'Facebook Session Manager',
+        title: `${currentDomainConfig.displayName} Session Manager`,
         show: false, // Don't show until ready to load
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -419,7 +524,7 @@ async function createWindow() {
         },
 	})
 	
-	win.setTitle('Facebook Session Manager - Chrome')
+	win.setTitle(`${currentDomainConfig.displayName} Session Manager - Chrome`)
 
     // Show window when ready to prevent premature closing
     win.once('ready-to-show', () => {
@@ -434,21 +539,21 @@ async function createWindow() {
 
     // Add console logging for debugging
     win.webContents.on('did-start-loading', () => {
-        console.log('🔄 Started loading Facebook...')
+        console.log(`🔄 Started loading ${currentDomainConfig.displayName}...`)
     })
 
     win.webContents.on('did-finish-load', () => {
-        console.log('✅ Page loaded. Login Facebook ya!')
+        console.log(`✅ Page loaded. Login ${currentDomainConfig.displayName} ya!`)
     })
 
-    // Load Facebook with error handling
+    // Load current domain with error handling
     try {
-        await win.loadURL('https://www.facebook.com', {
+        await win.loadURL(currentDomainConfig.url, {
             userAgent,
         })
-        console.log('✅ Facebook URL loaded successfully')
+        console.log(`✅ ${currentDomainConfig.displayName} URL loaded successfully`)
     } catch (error) {
-        console.error('❌ Error loading Facebook:', error)
+        console.error(`❌ Error loading ${currentDomainConfig.displayName}:`, error)
         // Show a local error page or retry
         win?.loadFile(path.join(__dirname, '../public/error.html')).catch(() => {
             console.error('❌ Could not load error page')
@@ -473,4 +578,4 @@ app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
 
-app.setName('Facebook - Chrome')
+app.setName(`${currentDomainConfig.displayName} - Chrome`)
