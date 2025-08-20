@@ -11,32 +11,32 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    name: 'Facebook Session Manager',
-    executableName: 'facebook-session-manager',
-    appBundleId: 'com.binarydev.facebook-session-manager',
+    name: 'Web Session Manager',
+    executableName: 'web-session-manager',
+    appBundleId: 'com.binarydev.web-session-manager',
     appCategoryType: 'public.app-category.developer-tools',
     icon: './public/img/icon', // Fixed icon path
     // osxSign disabled for development - no code signing required
     win32metadata: {
       CompanyName: 'BinaryDev',
-      FileDescription: 'Facebook Session Manager',
-      OriginalFilename: 'facebook-session-manager.exe',
-      ProductName: 'Facebook Session Manager',
-      InternalName: 'facebook-session-manager'
+      FileDescription: 'Web Session Manager',
+      OriginalFilename: 'web-session-manager.exe',
+      ProductName: 'Web Session Manager',
+      InternalName: 'web-session-manager'
     }
   },
   rebuildConfig: {},
   makers: [
     // Windows - Squirrel installer (.exe)
     new MakerSquirrel({
-      name: 'facebook-session-manager',
+      name: 'web-session-manager',
       setupIcon: './public/img/icon.ico',
       // loadingGif: './public/img/loading.gif', // Optional
       loadingGif: './public/img/icon.ico', // Optional
     }),
     // macOS - DMG installer
     new MakerDMG({
-      name: 'Facebook Session Manager',
+      name: 'Web Session Manager',
       icon: './public/img/icon.icns',
       // background: './public/img/icon.png', // Optional - disabled for now
       format: 'ULFO'
