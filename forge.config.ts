@@ -31,9 +31,8 @@ const config: ForgeConfig = {
     new MakerSquirrel({
       name: 'facebook-session-manager',
       setupIcon: './public/img/icon.ico',
-	  //   loadingGif: './public/img/loading.gif', // Optional
+      // loadingGif: './public/img/loading.gif', // Optional
       loadingGif: './public/img/icon.ico', // Optional
-	  
     }),
     // macOS - DMG installer
     new MakerDMG({

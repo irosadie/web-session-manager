@@ -1,15 +1,15 @@
 {
-  "name": "facebook-session-manager",
-  "productName": "facebook-session-manager",
+  "name": "web-session-manager",
+  "productName": "web-session-manager",
   "version": "1.0.0",
-  "description": "Facebook Session Manager - Manage Facebook sessions with export/import capabilities",
+  "description": "Web Session Manager - Manage web sessions with export/import capabilities",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "make:win": "electron-forge make --platform=win32",
-	"make:mac": "electron-forge make --platform=darwin",
+    "make:mac": "electron-forge make --platform=darwin",
     "make:linux": "electron-forge make --platform=linux",
     "package:win": "electron-forge package --platform=win32",
     "package:mac": "electron-forge package --platform=darwin",
@@ -25,10 +25,10 @@
     "url": "https://binarydev.co.id"
   },
   "license": "MIT",
-  "homepage": "https://github.com/irosadie/facebook-session-manager",
+  "homepage": "https://github.com/irosadie/web-session-manager",
   "repository": {
     "type": "git",
-    "url": "https://github.com/irosadie/facebook-session-manager.git"
+    "url": "https://github.com/irosadie/web-session-manager.git"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.8.1",
@@ -41,6 +41,7 @@
     "@electron-forge/plugin-fuses": "^7.8.1",
     "@electron-forge/plugin-vite": "^7.8.1",
     "@electron/fuses": "^1.8.0",
+    "@types/flexsearch": "^0.7.42",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "electron": "37.1.0",
