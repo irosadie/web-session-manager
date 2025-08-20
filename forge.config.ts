@@ -46,15 +46,15 @@ const config: ForgeConfig = {
     // Linux
     new MakerRpm({
       options: {
-        name: 'facebook-session-manager',
-        productName: 'Facebook Session Manager',
+        name: 'web-session-manager',
+        productName: 'Web Session Manager',
         icon: './public/img/icon.png'
       }
     }), 
     new MakerDeb({
       options: {
-        name: 'facebook-session-manager',
-        productName: 'Facebook Session Manager',
+        name: 'web-session-manager',
+        productName: 'Web Session Manager',
         icon: './public/img/icon.png'
       }
     })
