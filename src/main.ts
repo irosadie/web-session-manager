@@ -4,7 +4,8 @@ import {
     session,
     Menu,
     MenuItemConstructorOptions,
-    dialog
+    dialog,
+    clipboard
 } from 'electron'
 import path from 'path'
 import fs from 'fs'
@@ -86,6 +87,12 @@ const domainConfigs: DomainConfig[] = [
         displayName: 'TikTok',
         url: 'https://www.tiktok.com',
         cookieIdentifiers: ['sessionid', 'sid_tt']
+    },
+    {
+        domain: 'shopee.co.id',
+        displayName: 'Shopee',
+        url: 'https://shopee.co.id',
+        cookieIdentifiers: ['SPC_EC', 'SPC_F', 'shopee_token', 'SPC_SI', 'SPC_U', 'csrftoken', 'REC_T_ID', 'SPC_R_T_ID', 'SPC_T_ID', 'language', 'SPC_SC_TK']
     }
 ]
 
@@ -244,6 +251,65 @@ function createAppMenu() {
                     }
                 },
             }, ],
+        },
+        {
+            label: 'Tools',
+            submenu: [
+                {
+                    label: 'Copy Current URL',
+                    click: async () => {
+                        try {
+                            if (!win) {
+                                console.error('❌ Window not available')
+                                return
+                            }
+
+                            const currentURL = win.webContents.getURL()
+                            
+                            if (!currentURL) {
+                                console.log('❌ No URL available')
+                                win.webContents.executeJavaScript(`alert("❌ No URL available")`)
+                                return
+                            }
+
+                            // Copy to clipboard using Electron's clipboard API
+                            clipboard.writeText(currentURL)
+                            
+                            console.log('✅ URL copied to clipboard:', currentURL)
+                            win.webContents.executeJavaScript(`alert("✅ URL copied to clipboard:\\n${currentURL}")`)
+                            
+                        } catch (error) {
+                            console.error('❌ Error copying URL:', error)
+                            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                            win?.webContents.executeJavaScript(`alert("❌ Error copying URL: ${errorMessage}")`)
+                        }
+                    }
+                },
+                {
+                    type: 'separator'
+                },
+                {
+                    label: 'Reload Page',
+                    click: async () => {
+                        try {
+                            if (!win) {
+                                console.error('❌ Window not available')
+                                return
+                            }
+
+                            console.log('🔄 Reloading current page...')
+                            win.webContents.reload()
+                            
+                            console.log('✅ Page reloaded successfully')
+                            
+                        } catch (error) {
+                            console.error('❌ Error reloading page:', error)
+                            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                            win?.webContents.executeJavaScript(`alert("❌ Error reloading page: ${errorMessage}")`)
+                        }
+                    }
+                }
+            ]
         },
     ]
 
@@ -449,14 +515,28 @@ async function collectSessionData() {
             `.${currentDomainConfig.domain.replace('www.', '')}`
         ]
         
+        // Add special handling for Shopee subdomains
+        if (currentDomainConfig.domain === 'shopee.co.id') {
+            targetDomains.push('mall.shopee.co.id', 'seller.shopee.co.id', '.mall.shopee.co.id', '.seller.shopee.co.id')
+        }
+        
         const domainCookies = allCookies.filter(c => 
             targetDomains.some(domain => c.domain.includes(domain))
         )
 
-        // Check if user is logged in by looking for domain-specific cookies
-        const loginCookie = domainCookies.find(c => 
-            currentDomainConfig.cookieIdentifiers.some(identifier => c.name === identifier)
-        )
+        // Enhanced login detection for Shopee
+        let loginCookie
+        if (currentDomainConfig.domain === 'shopee.co.id') {
+            // For Shopee, check for any of the primary auth cookies
+            loginCookie = domainCookies.find(c => 
+                ['SPC_EC', 'SPC_U', 'shopee_token', 'SPC_SI'].includes(c.name)
+            )
+        } else {
+            // For other domains, use existing logic
+            loginCookie = domainCookies.find(c => 
+                currentDomainConfig.cookieIdentifiers.some(identifier => c.name === identifier)
+            )
+        }
         
         if (!loginCookie) {
             console.log(`⚠️ Belum login (cookies "${currentDomainConfig.cookieIdentifiers.join(', ')}" tidak ditemukan)`)
@@ -473,21 +553,43 @@ async function collectSessionData() {
         try {
           for (let i = 0; i < window.localStorage.length; i++) {
             const k = window.localStorage.key(i);
-            localStorage[k] = window.localStorage.getItem(k);
+            if (k) localStorage[k] = window.localStorage.getItem(k);
           }
-        } catch {}
+        } catch (e) {
+          console.log('Error accessing localStorage:', e);
+        }
         try {
           for (let i = 0; i < window.sessionStorage.length; i++) {
             const k = window.sessionStorage.key(i);
-            sessionStorage[k] = window.sessionStorage.getItem(k);
+            if (k) sessionStorage[k] = window.sessionStorage.getItem(k);
           }
-        } catch {}
+        } catch (e) {
+          console.log('Error accessing sessionStorage:', e);
+        }
+        
+        // Enhanced data collection for Shopee
+        let shopeeSpecificData = {};
+        if (window.location.hostname.includes('shopee.co.id')) {
+          try {
+            // Try to get user or cart data from window object
+            shopeeSpecificData = {
+              currentUser: window.__INITIAL_STATE__?.user || null,
+              cartData: window.__CART_DATA__ || null,
+              regionData: window.__REGION_DATA__ || null,
+              shopeeApp: window.__SHOPEE_APP_CONFIG__ || null
+            };
+          } catch (e) {
+            console.log('No Shopee specific data found');
+          }
+        }
+        
         return {
           localStorage,
           sessionStorage,
           userAgent: navigator.userAgent,
           origin: window.location.origin,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          shopeeData: shopeeSpecificData
         }
       })()
     `)
@@ -503,6 +605,15 @@ async function collectSessionData() {
         }
 
         console.log(`✅ ${currentDomainConfig.displayName} session collected successfully`)
+        console.log(`📊 Collected ${domainCookies.length} cookies for ${currentDomainConfig.displayName}`)
+        
+        // Special logging for Shopee
+        if (currentDomainConfig.domain === 'shopee.co.id') {
+            const shopeeAuthCookies = domainCookies.filter(c => 
+                ['SPC_EC', 'SPC_U', 'shopee_token', 'SPC_SI'].includes(c.name)
+            ).map(c => c.name)
+            console.log(`🛒 Shopee auth cookies found: ${shopeeAuthCookies.join(', ')}`)
+        }
     } catch (e) {
         console.error('❌ Failed to collect session data:', e)
         win?.webContents.executeJavaScript(`alert("❌ Gagal collect session data")`)
